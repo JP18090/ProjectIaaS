@@ -1,0 +1,12 @@
+# Ignorar pastas do Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# Ignorar arquivos compactados e binários
+*.zip
+*.exe
+
+# Ignorar variáveis sensíveis (caso você crie um)
+terraform.tfvars
