@@ -10,3 +10,14 @@
 
 # Ignorar variáveis sensíveis (caso você crie um)
 terraform.tfvars
+
+# Backend Java
+backend/target/
+
+# Frontend Node/React
+frontend/node_modules/
+frontend/dist/
+
+# Configurações locais
+.env
+.DS_Store
