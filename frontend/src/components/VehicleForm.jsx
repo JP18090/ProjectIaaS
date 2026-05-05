@@ -151,14 +151,14 @@ export default function VehicleForm({ initialValues, isEditing, isSubmitting, on
   async function handleSubmit(event) {
     event.preventDefault();
 
-    await onSubmit({
+    const saved = await onSubmit({
       ...form,
       year: Number(form.year),
       price: Number(form.price),
       mileage: Number(form.mileage)
     });
 
-    if (!isEditing) {
+    if (saved && !isEditing) {
       setForm(emptyForm);
     }
   }

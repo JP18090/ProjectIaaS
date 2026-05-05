@@ -8,6 +8,37 @@ import {
   updateVehicle
 } from '../services/api';
 
+function validateVehiclePayload(formData) {
+  const currentYear = new Date().getFullYear();
+  const maxYear = currentYear + 1;
+
+  if (!String(formData.brand || '').trim()) {
+    return 'Informe a marca do veiculo.';
+  }
+
+  if (!String(formData.model || '').trim()) {
+    return 'Informe o modelo do veiculo.';
+  }
+
+  if (!Number.isInteger(formData.year) || formData.year < 1950 || formData.year > maxYear) {
+    return `Informe um ano valido entre 1950 e ${maxYear}.`;
+  }
+
+  if (!Number.isFinite(formData.price) || formData.price <= 0) {
+    return 'Informe um preco valido maior que zero.';
+  }
+
+  if (!Number.isInteger(formData.mileage) || formData.mileage < 0) {
+    return 'Informe uma quilometragem valida.';
+  }
+
+  if (!['available', 'reserved', 'sold'].includes(formData.status)) {
+    return 'Selecione um status valido.';
+  }
+
+  return '';
+}
+
 const CatalogContext = createContext(null);
 
 export const initialForm = {
@@ -72,12 +103,30 @@ export function CatalogProvider({ children }) {
     setError('');
     setSuccessMessage('');
 
+    const validationError = validateVehiclePayload(formData);
+
+    if (validationError) {
+      setError(validationError);
+      setSubmitting(false);
+      return false;
+    }
+
+    const normalizedPayload = {
+      ...formData,
+      brand: String(formData.brand).trim(),
+      model: String(formData.model).trim(),
+      color: String(formData.color || '').trim(),
+      fuelType: String(formData.fuelType || '').trim(),
+      transmission: String(formData.transmission || '').trim(),
+      status: String(formData.status).trim()
+    };
+
     try {
       if (selectedVehicle) {
-        await updateVehicle(selectedVehicle.id, formData);
+        await updateVehicle(selectedVehicle.id, normalizedPayload);
         setSuccessMessage('Veiculo atualizado com sucesso.');
       } else {
-        await createVehicle(formData);
+        await createVehicle(normalizedPayload);
         setSuccessMessage('Veiculo cadastrado com sucesso.');
       }
 
