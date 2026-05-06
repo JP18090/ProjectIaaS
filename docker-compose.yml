@@ -28,7 +28,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-dbuser}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:8080}
-      FIPE_API_TOKEN: ${FIPE_API_TOKEN:-}
+      FIPE_API_TOKEN: ${FIPE_API_TOKEN:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5MTk2ODg3Ny0xMGUzLTQxM2EtYWI1OS1hZjY5MDVhNDYxMzQiLCJlbWFpbCI6InBlZHJvdGthdGNodWtAZ21haWwuY29tIiwiaWF0IjoxNzc3OTEyMjAzfQ.qQ4ZXugxsMISkiKV-r9S4PFpgw_u0eDQrYl3Trf-IiY}
       FIPE_BASE_URL: https://fipe.parallelum.com.br/api/v2
     ports:
       - "3000:3000"
