@@ -14,12 +14,12 @@ output "backend_public_ip" {
 }
 
 output "frontend_public_ip" {
-  value       = aws_instance.frontend.public_ip
-  description = "IP publico da EC2 do frontend"
+  value       = aws_eip.frontend.public_ip
+  description = "Elastic IP publico da EC2 do frontend"
 }
 
 output "frontend_url" {
-  value       = "http://${aws_instance.frontend.public_ip}"
+  value       = "http://${aws_eip.frontend.public_ip}"
   description = "URL publica da EC2 do frontend"
 }
 
