@@ -45,6 +45,7 @@ services:
       BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:3000}
     ports:
       - "${FRONTEND_HOST_PORT:-8080}:80"
+    restart: unless-stopped
 
 volumes:
   pgdata:
