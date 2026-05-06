@@ -9,8 +9,8 @@ output "lambda_function_name" {
 }
 
 output "backend_public_ip" {
-  value       = aws_instance.backend.public_ip
-  description = "IP publico da EC2 do backend"
+  value       = aws_eip.backend.public_ip
+  description = "Elastic IP publico da EC2 do backend"
 }
 
 output "frontend_public_ip" {
@@ -24,6 +24,6 @@ output "frontend_url" {
 }
 
 output "backend_direct_url" {
-  value       = "http://${aws_instance.backend.public_ip}:3000"
+  value       = "http://${aws_eip.backend.public_ip}:3000"
   description = "URL direta do backend para testes tecnicos"
 }

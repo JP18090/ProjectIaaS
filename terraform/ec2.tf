@@ -98,6 +98,19 @@ resource "aws_instance" "backend" {
   }
 }
 
+resource "aws_eip" "backend" {
+  domain = "vpc"
+
+  tags = {
+    Name = "backend-eip"
+  }
+}
+
+resource "aws_eip_association" "backend" {
+  instance_id   = aws_instance.backend.id
+  allocation_id = aws_eip.backend.id
+}
+
 resource "aws_instance" "frontend" {
   ami                    = "ami-0c7217cdde317cfec" # Ubuntu 22.04 LTS em us-east-1
   instance_type          = "t2.micro"

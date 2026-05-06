@@ -59,7 +59,7 @@ resource "aws_api_gateway_integration" "proxy_http" {
   http_method             = aws_api_gateway_method.proxy_any.http_method
   integration_http_method = "ANY"
   type                    = "HTTP_PROXY"
-  uri                     = "http://${aws_instance.backend.public_ip}:3000/{proxy}"
+  uri                     = "http://${aws_eip.backend.public_ip}:3000/{proxy}"
 
   request_parameters = {
     "integration.request.path.proxy" = "method.request.path.proxy"
@@ -78,7 +78,7 @@ resource "aws_api_gateway_deployment" "api" {
       aws_api_gateway_method.proxy_any.id,
       aws_api_gateway_integration.proxy_http.id,
       aws_lambda_function.report.arn,
-      aws_instance.backend.public_ip
+      aws_eip.backend.public_ip
     ]))
   }
 
