@@ -69,10 +69,27 @@ resource "aws_api_gateway_integration" "proxy_http" {
 resource "aws_api_gateway_deployment" "api" {
   rest_api_id = aws_api_gateway_rest_api.api.id
 
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_resource.report.id,
+      aws_api_gateway_method.report_get.id,
+      aws_api_gateway_integration.report_lambda.id,
+      aws_api_gateway_resource.proxy.id,
+      aws_api_gateway_method.proxy_any.id,
+      aws_api_gateway_integration.proxy_http.id,
+      aws_lambda_function.report.arn,
+      aws_instance.backend.public_ip
+    ]))
+  }
+
   depends_on = [
     aws_api_gateway_integration.report_lambda,
     aws_api_gateway_integration.proxy_http
   ]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_api_gateway_stage" "prod" {

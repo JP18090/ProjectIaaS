@@ -15,7 +15,7 @@ resource "aws_lambda_function" "report" {
 
   environment {
     variables = {
-      API_URL = "http://${aws_instance.backend.public_ip}:3000"
+      API_URL = "https://${aws_api_gateway_rest_api.api.id}.execute-api.${data.aws_region.current.name}.amazonaws.com/prod"
     }
   }
 }

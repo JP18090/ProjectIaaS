@@ -1,7 +1,7 @@
 # Ignorar pastas do Terraform
 .terraform/
-*.tfstate
-*.tfstate.backup
+#*.tfstate
+#*.tfstate.backup
 .terraform.lock.hcl
 
 # Ignorar arquivos compactados e binários
