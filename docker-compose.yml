@@ -32,6 +32,7 @@ services:
       FIPE_BASE_URL: https://fipe.parallelum.com.br/api/v2
     ports:
       - "3000:3000"
+    restart: unless-stopped
 
   frontend:
     build:
