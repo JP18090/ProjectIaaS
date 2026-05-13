@@ -85,15 +85,6 @@ ProjectIaaS/
 │           ├── VehicleForm.jsx
 │           ├── VehicleList.jsx
 │           └── ReportPanel.jsx
-└── terraform/
-    ├── api_gateway.tf
-    ├── ec2.tf
-    ├── lambda.tf
-    ├── outputs.tf
-    ├── provider.tf
-    ├── rds.tf
-    ├── variables.tf
-    └── vpc.tf
 ```
  
 | Componente | Tecnologia | Porta |
@@ -154,21 +145,6 @@ A função Lambda é executada em **Node.js 18** e responde pela rota `/report` 
   "lastUpdate": "2026-05-04T12:30:00Z"
 }
 ```
- 
----
- 
-### 🏗️ 6. Infraestrutura como Código com Terraform
- 
-Toda a infraestrutura AWS é provisionada automaticamente via **Terraform**. Cada arquivo `.tf` tem uma responsabilidade clara:
- 
-- `vpc.tf`: cria a VPC, subnets, internet gateway e tabelas de rota
-- `ec2.tf`: provisiona a instância EC2 com Docker instalado via bootstrap
-- `rds.tf`: cria o banco PostgreSQL em subnet privada, sem acesso público
-- `lambda.tf`: cria e configura a função Lambda `report-function`
-- `api_gateway.tf`: configura as rotas `/report` (Lambda) e `/{proxy+}` (EC2)
-- `variables.tf` / `outputs.tf`: variáveis e saídas reutilizáveis
----
- 
 ### 🐳 7. Containerização com Docker
  
 A aplicação foi estruturada para rodar em containers utilizando **Docker** e **Docker Compose**, com profiles para controlar quais serviços sobem em cada ambiente.
@@ -246,17 +222,7 @@ A API está disponível na porta **3000** (acesso direto) ou via **API Gateway**
  
 - Docker e Docker Compose
 - Git
-- Terraform (para provisionamento AWS)
-- Conta AWS configurada com credenciais válidas
-### Deploy na AWS
- 
-```bash
-cd terraform
-terraform init
-terraform plan
-terraform apply
-```
- 
+- Conta AWS
 ---
  
 ## 🧠 Aprendizados
@@ -264,9 +230,7 @@ terraform apply
 Este projeto foi uma excelente oportunidade para:
  
 - Aplicar conceitos de **infraestrutura em nuvem com AWS (VPC, subnets, EC2, RDS, Lambda, API Gateway)**
-- Trabalhar com **Terraform para provisionamento de infraestrutura como código**
 - Separar responsabilidades entre **front-end, back-end e funções serverless**
-- Configurar **Nginx como servidor web e proxy reverso**
 - Entender o funcionamento de **redes públicas e privadas com NAT Gateway**
 - Trabalhar com **Docker e Docker Compose** em ambiente multi-serviço
 - Realizar deploy de aplicações reais em ambiente cloud
