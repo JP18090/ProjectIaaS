@@ -1,299 +1,272 @@
-# ProjectIaaS
-
-Catalogo de veiculos automotivos com backend em Java Spring Boot, front-end web e infraestrutura AWS provisionada com Terraform.
-
-## 1. Visao geral
-
-O dominio escolhido para o projeto e um catalogo de carros. A aplicacao expoe um CRUD simples de veiculos pela rota obrigatoria /items, persiste os dados em PostgreSQL no Amazon RDS e publica um relatorio agregado pela rota /report usando AWS Lambda.
-
-Esse desenho atende os requisitos do trabalho:
-
-- API CRUD com 4 operacoes essenciais
-- API Gateway roteando o trafego
-- Lambda separada para /report
-- RDS PostgreSQL em subnet privada
-- EC2 executando o backend conteinerizado
-
-## 2. Arquitetura AWS
-
-Fluxo principal da aplicacao:
-
+# ☁️ ProjectIaaS - Catálogo de Veículos com Infraestrutura AWS
+ 
+Projeto desenvolvido com foco em **containerização, arquitetura em nuvem e deploy em AWS**, utilizando uma aplicação full-stack de **catálogo de veículos automotivos**, com **back-end em Java Spring Boot** e **front-end em HTML, CSS e JavaScript**, executados com **Docker**. No ambiente em nuvem, a solução foi organizada em uma **VPC com subnet pública e subnet privada**, com instância EC2 executando os containers, banco de dados PostgreSQL no Amazon RDS e rota de relatório servida por **AWS Lambda**, com tráfego gerenciado pelo **API Gateway**.
+ 
+## 👨‍💻 Desenvolvedores
+ 
+- Gabriel Labarca Del Bianco
+- [José Pedro Bitetti](https://github.com/JP18090)
+- [Gustavo Netto](https://github.com/gustavonc05)
+---
+ 
+## 🧭 Visão Geral
+ 
+A aplicação permite ao usuário:
+ 
+- Cadastrar veículos no catálogo
+- Listar, editar e remover veículos
+- Consultar um relatório agregado com estatísticas do catálogo
+O projeto foi estruturado para separar claramente as responsabilidades entre interface, API e infraestrutura, aplicando conceitos de IaaS com isolamento de rede, provisionamento via código e execução conteinerizada.
+ 
+---
+ 
+## 🛠️ Etapas do Desenvolvimento
+ 
+### ☁️ 1. Infraestrutura AWS
+ 
+A infraestrutura foi planejada dentro de uma **VPC** com faixa `10.0.0.0/16`, contendo uma **subnet pública** e subnets privadas, com uso de **Internet Gateway**, **NAT Gateway** e tabelas de rota separadas. Uma instância EC2 na subnet pública executa os containers de front-end e back-end, enquanto o banco de dados PostgreSQL reside em uma instância RDS na **subnet privada**, sem acesso público. Toda a infraestrutura é provisionada via **Terraform**.
+ 
+#### 📌 Fluxo de tráfego
+ 
+```
 Internet
-	-> API Gateway
-		-> /report -> Lambda Node.js 18
-		-> /{proxy+} -> EC2 Ubuntu 22.04 com Docker
-			-> Spring Boot na porta 3000
-			-> Amazon RDS PostgreSQL em subnet privada
-
-Mapeamento com os arquivos atuais de infraestrutura:
-
-- [terraform/vpc.tf](terraform/vpc.tf): VPC, subnets publica e privadas, internet gateway e rota publica
-- [terraform/ec2.tf](terraform/ec2.tf): EC2 t2.micro, security group e bootstrap com Docker
-- [terraform/rds.tf](terraform/rds.tf): PostgreSQL db.t3.micro em subnet privada, sem acesso publico
-- [terraform/lambda.tf](terraform/lambda.tf): funcao Lambda report-function em Node.js 18
-- [terraform/api_gateway.tf](terraform/api_gateway.tf): rota /report e proxy /{proxy+}
-
-## 3. Como estruturar as informacoes do catalogo
-
-Para um catalogo de veiculos automotivos, a melhor abordagem e manter uma entidade principal simples, mas com campos suficientes para demonstrar valor de negocio no CRUD e no relatorio.
-
-### Entidade principal: Vehicle
-
-Campos recomendados:
-
-| Campo | Tipo | Obrigatorio | Exemplo | Finalidade |
-|-------|------|-------------|---------|------------|
-| id | SERIAL / Long | Sim | 1 | Identificador unico |
-| brand | VARCHAR(50) | Sim | Toyota | Marca do veiculo |
-| model | VARCHAR(100) | Sim | Corolla | Modelo |
-| year | INT | Sim | 2023 | Ano do modelo |
-| color | VARCHAR(30) | Nao | Preto | Exibicao e filtro |
-| price | DECIMAL(10,2) | Sim | 89900.00 | Valor do anuncio |
-| mileage | INT | Nao | 35000 | Quilometragem |
-| fuel_type | VARCHAR(20) | Nao | Flex | Tipo de combustivel |
-| transmission | VARCHAR(20) | Nao | Automatico | Diferencial comercial |
-| status | VARCHAR(20) | Sim | available | Estado do item |
-| created_at | TIMESTAMP | Sim | 2026-05-04T12:00:00 | Auditoria basica |
-
-Valores recomendados para status:
-
-- available: veiculo disponivel para venda
-- reserved: veiculo com negociacao em andamento
-- sold: veiculo vendido
-
-Se quiser manter o escopo minimo, use apenas available e sold, porque isso simplifica a Lambda /report e fica alinhado ao checklist.
-
-### Estrutura logica das informacoes
-
-Separe os dados em 3 blocos no back-end e no front-end:
-
-1. Identificacao do veiculo
-	 brand, model, year
-2. Dados comerciais
-	 price, status
-3. Dados tecnicos e visuais
-	 color, mileage, fuel_type, transmission
-
-Essa divisao facilita:
-
-- formularios mais claros no front-end
-- validacao de entrada no Spring Boot
-- filtros e estatisticas no relatorio
-
-## 4. Modelo relacional sugerido
-
-```sql
-CREATE TABLE vehicles (
-	id            SERIAL PRIMARY KEY,
-	brand         VARCHAR(50)  NOT NULL,
-	model         VARCHAR(100) NOT NULL,
-	year          INT          NOT NULL,
-	color         VARCHAR(30),
-	price         DECIMAL(10,2) NOT NULL,
-	mileage       INT DEFAULT 0,
-	fuel_type     VARCHAR(20),
-	transmission  VARCHAR(20),
-	status        VARCHAR(20) DEFAULT 'available',
-	created_at    TIMESTAMP DEFAULT NOW()
-);
+  → API Gateway
+       → /report       → Lambda (Node.js 18)
+       → /{proxy+}     → EC2 Ubuntu 22.04 (Docker)
+                             → Spring Boot :3000
+                                   → RDS PostgreSQL (subnet privada)
 ```
-
-Regras simples de validacao recomendadas:
-
-- brand e model nao podem vir vazios
-- year deve estar entre 1950 e o ano atual + 1
-- price deve ser maior que zero
-- mileage nao pode ser negativa
-- status deve aceitar apenas os valores definidos pelo projeto
-
-## 5. Contrato da API
-
-Embora a entidade de negocio seja Vehicle, a rota deve se chamar /items para atender o requisito da disciplina.
-
-### Endpoints obrigatorios
-
-| Metodo | Rota | Acao |
-|--------|------|------|
-| GET | /items | Listar todos os veiculos |
-| GET | /items/{id} | Buscar um veiculo por ID |
-| POST | /items | Cadastrar um veiculo |
-| PUT | /items/{id} | Atualizar um veiculo |
-| DELETE | /items/{id} | Remover um veiculo |
-| GET | /report | Retornar estatisticas via Lambda |
-
-### Exemplo de payload para criacao
-
-```json
-{
-	"brand": "Toyota",
-	"model": "Corolla XEi",
-	"year": 2023,
-	"color": "Prata",
-	"price": 129900.00,
-	"mileage": 18000,
-	"fuelType": "Flex",
-	"transmission": "Automatico",
-	"status": "available"
-}
-```
-
-### Exemplo de resposta da listagem
-
-```json
-[
-	{
-		"id": 1,
-		"brand": "Toyota",
-		"model": "Corolla XEi",
-		"year": 2023,
-		"color": "Prata",
-		"price": 129900.0,
-		"mileage": 18000,
-		"fuelType": "Flex",
-		"transmission": "Automatico",
-		"status": "available",
-		"createdAt": "2026-05-04T12:00:00Z"
-	}
-]
-```
-
-## 6. Lambda /report
-
-A Lambda nao acessa o banco diretamente. Ela consome a API HTTP publicada pelo API Gateway e agrega os dados retornados por /items.
-
-Estatisticas recomendadas:
-
-- totalVehicles
-- available
-- sold
-- avgPrice
-- byBrand
-- lastUpdate
-
-Exemplo de resposta:
-
-```json
-{
-	"totalVehicles": 12,
-	"available": 9,
-	"sold": 3,
-	"avgPrice": 98750.42,
-	"byBrand": {
-		"Toyota": 4,
-		"Ford": 3,
-		"Honda": 2,
-		"BMW": 3
-	},
-	"lastUpdate": "2026-05-04T12:30:00Z"
-}
-```
-
-## 7. Estrutura de pastas recomendada
-
-O repositorio hoje possui a infraestrutura em [terraform](terraform). Para manter compatibilidade com o que ja foi iniciado, a estrutura pode evoluir assim:
-
+ 
+#### 📌 Organização da rede
+ 
+| Componente | Tipo / Tecnologia | Detalhes |
+|---|---|---|
+| VPC | Rede AWS | 10.0.0.0/16 |
+| Subnet Pública | AWS Subnet | Hospeda a EC2 |
+| Subnet Privada | AWS Subnet | Hospeda o RDS PostgreSQL |
+| Internet Gateway | Gateway | Acesso externo (0.0.0.0/0) |
+| NAT Gateway | Gateway | Saída da rede privada |
+| Tabela de Rota Pública | Routing | Internet Gateway |
+| Tabela de Rota Privada | Routing | NAT Gateway |
+| EC2 | t2.micro Ubuntu 22.04 | Subnet pública, executa Docker |
+| RDS PostgreSQL | db.t3.micro | Subnet privada, porta 5432 |
+| Lambda | Node.js 18 | Função `report-function` |
+| API Gateway | AWS API Gateway | Roteia `/report` e `/{proxy+}` |
+| Grupo de Segurança | Firewall AWS | Protege EC2 e RDS |
+ 
+---
+ 
+### 🧱 2. Arquitetura dos Componentes
+ 
+O projeto está estruturado da seguinte forma no repositório: um `docker-compose.yml` na raiz orquestra os serviços localmente, o diretório `backend` concentra a API REST em Spring Boot, o diretório `frontend` concentra a interface web e o diretório `terraform` contém todos os arquivos de infraestrutura como código.
+ 
 ```text
 ProjectIaaS/
+├── docker-compose.yml
+├── .env.example
 ├── backend/
-│   ├── src/main/java/... 
-│   ├── src/main/resources/
 │   ├── Dockerfile
-│   └── pom.xml
+│   ├── pom.xml
+│   └── src/main/java/com/projectiaas/catalog/
+│       ├── CatalogApplication.java
+│       ├── controller/ItemController.java
+│       ├── dto/VehicleRequest.java
+│       ├── dto/VehicleResponse.java
+│       ├── entity/Vehicle.java
+│       ├── repository/VehicleRepository.java
+│       └── service/VehicleService.java
 ├── frontend/
-│   ├── src/
-│   ├── public/
 │   ├── Dockerfile
-│   └── package.json
-├── lambda/
-│   ├── index.js
-│   └── package.json
-├── terraform/
-│   ├── api_gateway.tf
-│   ├── ec2.tf
-│   ├── lambda.tf
-│   ├── outputs.tf
-│   ├── provider.tf
-│   ├── rds.tf
-│   ├── variables.tf
-│   └── vpc.tf
-├── docs/
-│   └── arquitetura.png
-└── README.md
+│   ├── nginx.conf
+│   └── src/
+│       ├── App.jsx
+│       ├── api/items.js
+│       └── components/
+│           ├── VehicleForm.jsx
+│           ├── VehicleList.jsx
+│           └── ReportPanel.jsx
+└── terraform/
+    ├── api_gateway.tf
+    ├── ec2.tf
+    ├── lambda.tf
+    ├── outputs.tf
+    ├── provider.tf
+    ├── rds.tf
+    ├── variables.tf
+    └── vpc.tf
 ```
-
-### Estrutura recomendada do backend Spring Boot
-
-```text
-backend/src/main/java/com/projectiaas/catalog/
-├── controller/
-│   └── ItemController.java
-├── dto/
-│   ├── VehicleRequest.java
-│   └── VehicleResponse.java
-├── entity/
-│   └── Vehicle.java
-├── repository/
-│   └── VehicleRepository.java
-├── service/
-│   └── VehicleService.java
-└── CatalogApplication.java
+ 
+| Componente | Tecnologia | Porta |
+|---|---|---|
+| Backend | Java 21 + Spring Boot 3 | 3000 |
+| Frontend | React + Nginx | 80 |
+| Banco de dados | PostgreSQL (RDS) | 5432 |
+| Relatório | Node.js 18 (Lambda) | — |
+ 
+---
+ 
+### ⚙️ 3. Back-end
+ 
+O back-end foi desenvolvido em **Java com Spring Boot**, utilizando **Spring Data JPA** e banco **PostgreSQL**. A API REST é responsável por manipular os veículos do catálogo, permitindo operações de criação, leitura, atualização e remoção (CRUD) pela rota `/items`. A entidade interna se chama `Vehicle`, mas o contrato externo usa `/items` para atender ao requisito da disciplina. O back-end também consome a **API FIPE** para enriquecer os dados dos veículos.
+ 
+#### 📌 Estrutura do back-end
+ 
+- `CatalogApplication.java`: classe principal da aplicação
+- `entity/Vehicle.java`: entidade JPA mapeada para a tabela `vehicles`
+- `repository/VehicleRepository.java`: repositório de dados com Spring Data
+- `service/VehicleService.java`: regras de negócio
+- `controller/ItemController.java`: controller REST com os endpoints expostos em `/items`
+- `dto/`: objetos de entrada (`VehicleRequest`) e saída (`VehicleResponse`)
+---
+ 
+### 💻 4. Front-end
+ 
+O front-end foi desenvolvido em **React**, sendo servido por um **servidor Nginx** dentro de um container Docker. O Nginx também atua como proxy reverso para as requisições à API, evitando a necessidade de expor diretamente a porta do back-end.
+ 
+#### 📌 Estrutura do front-end
+ 
+- `App.jsx`: componente raiz e roteamento
+- `api/items.js`: centraliza todas as chamadas ao API Gateway
+- `components/VehicleForm.jsx`: formulário para criar e editar veículos
+- `components/VehicleList.jsx`: listagem com ações de editar e excluir
+- `components/ReportPanel.jsx`: exibe as estatísticas retornadas por `/report`
+- `nginx.conf`: configuração do servidor e proxy reverso
+---
+ 
+### ⚡ 5. Lambda `/report`
+ 
+A função Lambda é executada em **Node.js 18** e responde pela rota `/report` no API Gateway. Em vez de acessar o banco diretamente, ela consome a rota `/items` via HTTP e agrega as estatísticas do catálogo.
+ 
+#### 📌 Dados retornados
+ 
+```json
+{
+  "totalVehicles": 12,
+  "available": 9,
+  "sold": 3,
+  "avgPrice": 98750.42,
+  "byBrand": {
+    "Toyota": 4,
+    "Ford": 3,
+    "Honda": 2,
+    "BMW": 3
+  },
+  "lastUpdate": "2026-05-04T12:30:00Z"
+}
 ```
-
-Observacao importante: mesmo usando o nome tecnico Vehicle internamente, o controller deve expor /items para bater com o checklist do professor.
-
-## 8. Estrutura recomendada do front-end
-
-Se o front-end for React, a organizacao minima pode ser:
-
-```text
-frontend/src/
-├── api/
-│   └── items.js
-├── components/
-│   ├── VehicleForm.jsx
-│   ├── VehicleList.jsx
-│   └── ReportPanel.jsx
-├── pages/
-│   └── Home.jsx
-├── App.jsx
-└── main.jsx
+ 
+---
+ 
+### 🏗️ 6. Infraestrutura como Código com Terraform
+ 
+Toda a infraestrutura AWS é provisionada automaticamente via **Terraform**. Cada arquivo `.tf` tem uma responsabilidade clara:
+ 
+- `vpc.tf`: cria a VPC, subnets, internet gateway e tabelas de rota
+- `ec2.tf`: provisiona a instância EC2 com Docker instalado via bootstrap
+- `rds.tf`: cria o banco PostgreSQL em subnet privada, sem acesso público
+- `lambda.tf`: cria e configura a função Lambda `report-function`
+- `api_gateway.tf`: configura as rotas `/report` (Lambda) e `/{proxy+}` (EC2)
+- `variables.tf` / `outputs.tf`: variáveis e saídas reutilizáveis
+---
+ 
+### 🐳 7. Containerização com Docker
+ 
+A aplicação foi estruturada para rodar em containers utilizando **Docker** e **Docker Compose**, com profiles para controlar quais serviços sobem em cada ambiente.
+ 
+### Com Docker Compose (recomendado)
+ 
+```bash
+# Copiar variáveis de ambiente
+cp .env.example .env
+ 
+# Subir tudo (front-end, back-end e banco local)
+docker compose --profile full --profile local up -d
+ 
+# Acessar no navegador
+# http://localhost:8080
+ 
+# Parar a aplicação
+docker compose down
 ```
-
-Responsabilidade de cada parte:
-
-- VehicleForm: criar e editar itens
-- VehicleList: listar e excluir itens
-- ReportPanel: chamar /report e mostrar estatisticas
-- api/items.js: centralizar chamadas ao API Gateway
-
-## 9. Alinhamento com o checklist da entrega
-
-Itens que o projeto precisa demonstrar:
-
-- CRUD funcional usando /items
-- API Gateway roteando /items para o backend e /report para a Lambda
-- Lambda consumindo HTTP da API, sem acessar o RDS
-- Banco RDS privado, na porta 5432, sem exposicao publica
-- README com diagrama em docs/
-- Video mostrando CRUD, /report e pipeline de deploy
-
-## 10. Proximos passos tecnicos
-
-Ordem recomendada de implementacao:
-
-1. Criar o backend Spring Boot com a entidade Vehicle e expor /items.
-2. Integrar o Spring Boot ao PostgreSQL do RDS com JPA.
-3. Substituir o container de teste em [terraform/ec2.tf](terraform/ec2.tf) por imagem Docker da API.
-4. Ajustar [terraform/api_gateway.tf](terraform/api_gateway.tf) para integrar /report com Lambda e /{proxy+} com a EC2.
-5. Implementar a Lambda em Node.js 18 consumindo a URL publicada pelo API Gateway.
-6. Criar o front-end consumindo apenas as rotas do API Gateway.
-
-## 11. Resumo da modelagem recomendada
-
-Se a pergunta for "como devo estruturar as informacoes?", a resposta pratica e:
-
-- mantenha uma unica entidade principal chamada Vehicle
-- use /items como contrato externo da API
-- separe os campos entre identificacao, comercial e tecnico
-- gere o /report a partir da API, nao do banco
-- documente a arquitetura exatamente como ela esta provisionada no Terraform
+ 
+### Profiles disponíveis
+ 
+| Profile | Serviços que sobem |
+|---|---|
+| `local` | Banco PostgreSQL local |
+| `backend` | Apenas o back-end |
+| `frontend` | Apenas o front-end |
+| `full` | Front-end + Back-end |
+ 
+### Sem Docker (desenvolvimento)
+ 
+```bash
+cd backend
+mvn spring-boot:run
+```
+ 
+> Neste modo, apenas a API estará disponível em `http://localhost:3000`. O frontend precisa ser servido separadamente e um PostgreSQL local precisa estar rodando.
+ 
+---
+ 
+## 📡 API REST
+ 
+A API está disponível na porta **3000** (acesso direto) ou via **API Gateway** na AWS.
+ 
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `GET` | `/items` | Listar todos os veículos |
+| `GET` | `/items/{id}` | Buscar um veículo por ID |
+| `POST` | `/items` | Cadastrar um veículo |
+| `PUT` | `/items/{id}` | Atualizar um veículo |
+| `DELETE` | `/items/{id}` | Remover um veículo |
+| `GET` | `/report` | Retornar estatísticas via Lambda |
+ 
+#### Exemplo de payload para criação
+ 
+```json
+{
+  "brand": "Toyota",
+  "model": "Corolla XEi",
+  "year": 2023,
+  "color": "Prata",
+  "price": 129900.00,
+  "mileage": 18000,
+  "fuelType": "Flex",
+  "transmission": "Automatico",
+  "status": "available"
+}
+```
+ 
+---
+ 
+## 🚀 Como Executar
+ 
+### 📋 Requisitos
+ 
+- Docker e Docker Compose
+- Git
+- Terraform (para provisionamento AWS)
+- Conta AWS configurada com credenciais válidas
+### Deploy na AWS
+ 
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
+ 
+---
+ 
+## 🧠 Aprendizados
+ 
+Este projeto foi uma excelente oportunidade para:
+ 
+- Aplicar conceitos de **infraestrutura em nuvem com AWS (VPC, subnets, EC2, RDS, Lambda, API Gateway)**
+- Trabalhar com **Terraform para provisionamento de infraestrutura como código**
+- Separar responsabilidades entre **front-end, back-end e funções serverless**
+- Configurar **Nginx como servidor web e proxy reverso**
+- Entender o funcionamento de **redes públicas e privadas com NAT Gateway**
+- Trabalhar com **Docker e Docker Compose** em ambiente multi-serviço
+- Realizar deploy de aplicações reais em ambiente cloud
